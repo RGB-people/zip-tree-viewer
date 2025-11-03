@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -433,19 +433,19 @@
         <header>
             <div class="header-info">
                 <h1>ZIP Tree Viewer Pro</h1>
-                <p class="subtitle">Просмотр структуры и содержимого ZIP-архивов</p>
+                <p class="subtitle">View the structure and contents of ZIP archives</p>
             </div>
             <div class="header-controls">
-                <button class="btn btn-secondary" id="historyBtn">📚 История</button>
-                <button class="btn btn-secondary" id="helpBtn">❓ Помощь</button>
+                <button class="btn btn-secondary" id="historyBtn">📚 History</button>
+                <button class="btn btn-secondary" id="helpBtn">❓ Help</button>
             </div>
         </header>
         
         <section class="upload-section">
             <div class="upload-area" id="uploadArea">
                 <div class="upload-icon">📁</div>
-                <p class="upload-text">Перетащите ZIP-файл сюда или нажмите для выбора</p>
-                <button class="btn" id="browseBtn">📁 Выбрать файл</button>
+                <p class="upload-text">Drag and drop a ZIP file here or click to select</p>
+                <button class="btn" id="browseBtn">📁 Select File</button>
                 <input type="file" id="fileInput" class="file-input" accept=".zip">
             </div>
         </section>
@@ -453,7 +453,7 @@
         <section class="result-section" id="resultSection">
             <div class="controls-row">
                 <div class="search-box">
-                    <input type="text" id="searchInput" placeholder="Поиск файлов...">
+                    <input type="text" id="searchInput" placeholder="Search files...">
                     <span class="search-results" id="searchResults"></span>
                 </div>
                 <div class="view-options">
@@ -461,9 +461,9 @@
                     <button class="btn" data-view="list">📋 List</button>
                     <button class="btn" data-view="grid">🔲 Grid</button>
                 </div>
-                <button class="btn btn-success" id="copyBtn">📋 Копировать</button>
-                <button class="btn btn-secondary" id="exportBtn">💾 Экспорт</button>
-                <button class="btn btn-warning" id="resetBtn">🔄 Новый файл</button>
+                <button class="btn btn-success" id="copyBtn">📋 Copy</button>
+                <button class="btn btn-secondary" id="exportBtn">💾 Export</button>
+                <button class="btn btn-warning" id="resetBtn">🔄 New File</button>
             </div>
             
             <div class="file-info">
@@ -477,13 +477,13 @@
             <div class="archive-info" id="archiveInfo"></div>
             
             <div class="file-structure tree" id="fileStructure">
-                <!-- Структура файлов будет отображаться здесь -->
+                <!-- File structure will be displayed here -->
             </div>
             
             <div class="file-content" id="fileContent">
                 <div class="file-content-header">
                     <strong id="contentFileName"></strong>
-                    <button class="btn btn-secondary" id="closeContentBtn">✕ Закрыть</button>
+                    <button class="btn btn-secondary" id="closeContentBtn">✕ Close</button>
                 </div>
                 <pre id="contentText"></pre>
             </div>
@@ -491,12 +491,12 @@
         
         <div class="loading" id="loading">
             <div class="spinner"></div>
-            <p>Анализируем архив...</p>
+            <p>Analyzing archive...</p>
         </div>
     </div>
     
     <footer>
-        <p>© 2024 ZIP Tree Viewer Pro | Все файлы обрабатываются локально в вашем браузере</p>
+        <p>© 2025 ZIP Tree Viewer Pro | All files are processed locally in your browser</p>
     </footer>
 
     <script>
@@ -528,7 +528,7 @@
             let currentView = 'tree';
             let allFiles = [];
 
-            // Инициализация
+            // Initialization
             init();
 
             function init() {
@@ -537,7 +537,7 @@
             }
 
             function setupEventListeners() {
-                // Основные обработчики
+                // Main handlers
                 browseBtn.addEventListener('click', () => {
                     fileInput.value = '';
                     fileInput.click();
@@ -571,16 +571,16 @@
 
                 uploadArea.addEventListener('drop', handleDrop, false);
 
-                // Кнопки управления
+                // Control buttons
                 resetBtn.addEventListener('click', resetForm);
                 copyBtn.addEventListener('click', copyStructure);
                 exportBtn.addEventListener('click', exportToText);
                 closeContentBtn.addEventListener('click', closeFileContent);
 
-                // Поиск
+                // Search
                 searchInput.addEventListener('input', performSearch);
 
-                // Режимы просмотра
+                // View modes
                 viewButtons.forEach(btn => {
                     btn.addEventListener('click', function() {
                         viewButtons.forEach(b => b.classList.remove('active'));
@@ -591,7 +591,7 @@
                     });
                 });
 
-                // Дополнительные кнопки
+                // Additional buttons
                 historyBtn.addEventListener('click', showHistory);
                 helpBtn.addEventListener('click', showHelp);
             }
@@ -620,13 +620,13 @@
             function handleFiles(files) {
                 const file = files[0];
                 if (!file.name.toLowerCase().endsWith('.zip')) {
-                    alert('Пожалуйста, выберите файл с расширением .zip');
+                    alert('Please select a file with .zip extension');
                     return;
                 }
 
                 showLoading(true);
                 fileName.textContent = file.name;
-                fileDetails.textContent = `Размер: ${formatFileSize(file.size)}`;
+                fileDetails.textContent = `Size: ${formatFileSize(file.size)}`;
 
                 processZipFile(file);
             }
@@ -649,8 +649,8 @@
                         });
                     })
                     .catch(function(error) {
-                        console.error('Ошибка при чтении ZIP-архива:', error);
-                        showError('Не удалось прочитать ZIP-архив. Убедитесь, что файл не поврежден.');
+                        console.error('Error reading ZIP archive:', error);
+                        showError('Failed to read ZIP archive. Make sure the file is not corrupted.');
                         showLoading(false);
                     });
             }
@@ -665,36 +665,36 @@
                 const compressionRatio = ((file.size / totalSize) * 100).toFixed(1);
 
                 archiveInfo.innerHTML = `
-                    <strong>📊 Информация об архиве:</strong>
+                    <strong>📊 Archive Information:</strong>
                     <div class="stats-grid">
                         <div class="stat-item">
                             <div class="stat-value">${totalFiles}</div>
-                            <div class="stat-label">Файлов</div>
+                            <div class="stat-label">Files</div>
                         </div>
                         <div class="stat-item">
                             <div class="stat-value">${totalFolders}</div>
-                            <div class="stat-label">Папок</div>
+                            <div class="stat-label">Folders</div>
                         </div>
                         <div class="stat-item">
                             <div class="stat-value">${formatFileSize(totalSize)}</div>
-                            <div class="stat-label">Общий размер</div>
+                            <div class="stat-label">Total Size</div>
                         </div>
                         <div class="stat-item">
                             <div class="stat-value">${compressionRatio}%</div>
-                            <div class="stat-label">Сжатие</div>
+                            <div class="stat-label">Compression</div>
                         </div>
                     </div>
                 `;
 
-                // Обновляем статистику в fileStats
+                // Update statistics in fileStats
                 const topExtensions = Object.entries(fileTypes)
                     .sort((a, b) => b[1] - a[1])
                     .slice(0, 3)
                     .map(([ext, count]) => `${ext}: ${count}`)
                     .join(', ');
 
-                fileStats.innerHTML = `Типы файлов: ${topExtensions}`;
-                fileDetails.textContent += ` | Файлов: ${totalFiles} | Папок: ${totalFolders}`;
+                fileStats.innerHTML = `File types: ${topExtensions}`;
+                fileDetails.textContent += ` | Files: ${totalFiles} | Folders: ${totalFolders}`;
             }
 
             function renderFileStructure() {
@@ -776,12 +776,12 @@
                 buildTree(root, '', true);
                 
                 treeOutput += '\n<span class="tree-line">' + 
-                             folderCount + ' директорий, ' + 
-                             fileCount + ' файлов</span>\n';
+                             folderCount + ' directories, ' + 
+                             fileCount + ' files</span>\n';
 
                 fileStructure.innerHTML = '<div class="tree-output">' + treeOutput + '</div>';
 
-                // Добавляем обработчики кликов для файлов
+                // Add click handlers for files
                 document.querySelectorAll('.tree-file').forEach(el => {
                     el.style.cursor = 'pointer';
                     el.addEventListener('click', function() {
@@ -814,7 +814,7 @@
 
                 fileStructure.innerHTML = html;
 
-                // Добавляем обработчики кликов
+                // Add click handlers
                 document.querySelectorAll('.file-item').forEach(el => {
                     el.addEventListener('click', function() {
                         const filePath = this.dataset.path;
@@ -865,7 +865,7 @@
                     const file = currentZip.files[filePath];
                     contentFileName.textContent = filePath;
                     
-                    // Проверяем, является ли файл текстовым
+                    // Check if the file is text-based
                     const extension = filePath.split('.').pop().toLowerCase();
                     const textExtensions = ['txt', 'md', 'c', 'h', 'cpp', 'hpp', 'js', 'html', 'css', 'py', 'java', 'json', 'xml', 'csv', 'log', 'cfg', 'conf', 'ini', 'rs', 'asm'];
                     
@@ -881,8 +881,8 @@
                             warning.className = 'binary-warning';
                             warning.innerHTML = `
                                 <div style="font-size: 3rem; margin-bottom: 10px;">🔒</div>
-                                <p>Этот файл не может быть отображен как текст</p>
-                                <p style="font-size: 0.8rem; margin-top: 10px;">Формат: ${extension || 'неизвестен'}</p>
+                                <p>This file cannot be displayed as text</p>
+                                <p style="font-size: 0.8rem; margin-top: 10px;">Format: ${extension || 'unknown'}</p>
                             `;
                             fileContent.appendChild(warning);
                         }
@@ -891,8 +891,8 @@
                     fileContent.style.display = 'block';
                     fileContent.scrollIntoView({ behavior: 'smooth' });
                 } catch (error) {
-                    console.error('Ошибка при чтении файла:', error);
-                    contentText.textContent = 'Ошибка при чтении файла';
+                    console.error('Error reading file:', error);
+                    contentText.textContent = 'Error reading file';
                 }
                 
                 showLoading(false);
@@ -914,9 +914,9 @@
                     path.toLowerCase().includes(query) && !path.endsWith('/')
                 );
 
-                searchResults.textContent = `Найдено: ${results.length}`;
+                searchResults.textContent = `Found: ${results.length}`;
 
-                // Подсветка результатов в текущем представлении
+                // Highlight results in current view
                 if (currentView === 'tree') {
                     highlightInTree(results);
                 } else {
@@ -956,8 +956,8 @@
                     : generateTextStructure();
                 
                 navigator.clipboard.writeText(text).then(() => {
-                    copyBtn.textContent = '✅ Скопировано!';
-                    setTimeout(() => copyBtn.textContent = '📋 Копировать', 2000);
+                    copyBtn.textContent = '✅ Copied!';
+                    setTimeout(() => copyBtn.textContent = '📋 Copy', 2000);
                 });
             }
 
@@ -976,7 +976,7 @@
             }
 
             function generateTextStructure() {
-                let text = `Структура архива: ${fileName.textContent}\n\n`;
+                let text = `Archive structure: ${fileName.textContent}\n\n`;
                 allFiles.filter(path => !path.endsWith('/')).forEach(path => {
                     const file = currentZip.files[path];
                     text += `${path} [${formatFileSize(file._data.uncompressedSize)}]\n`;
@@ -1012,11 +1012,11 @@
                 `;
             }
 
-            // Вспомогательные функции
+            // Helper functions
             function formatFileSize(bytes) {
-                if (bytes === 0) return '0 Б';
+                if (bytes === 0) return '0 B';
                 const k = 1024;
-                const sizes = ['Б', 'КБ', 'МБ', 'ГБ'];
+                const sizes = ['B', 'KB', 'MB', 'GB'];
                 const i = Math.floor(Math.log(bytes) / Math.log(k));
                 return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
             }
@@ -1062,42 +1062,42 @@
             }
 
             function loadHistory() {
-                // Можно реализовать отображение истории
+                // Can implement history display
             }
 
             function showHistory() {
-                alert('Функция истории будет реализована в следующей версии!');
+                alert('History feature will be implemented in the next version!');
             }
 
             function showHelp() {
-                alert(`ZIP Tree Viewer Pro - Помощь
+                alert(`ZIP Tree Viewer Pro - Help
 
-📁 Загрузка файлов:
-• Перетащите ZIP-файл в выделенную область
-• Или нажмите "Выбрать файл"
+📁 Uploading files:
+• Drag and drop a ZIP file into the designated area
+• Or click "Select File"
 
-🔍 Поиск:
-• Используйте поле поиска для быстрого нахождения файлов
+🔍 Search:
+• Use the search field to quickly find files
 
-👁️ Режимы просмотра:
-• 🌳 Tree - древовидная структура
-• 📋 List - список файлов
-• 🔲 Grid - сетка с иконками
+👁️ View modes:
+• 🌳 Tree - tree structure
+• 📋 List - file list
+• 🔲 Grid - grid with icons
 
-📄 Просмотр файлов:
-• Нажмите на любой файл для просмотра его содержимого
-• Поддерживаются текстовые форматы
+📄 Viewing files:
+• Click on any file to view its contents
+• Text formats are supported
 
-📋 Действия:
-• Копирование структуры в буфер обмена
-• Экспорт структуры в текстовый файл
+📋 Actions:
+• Copy structure to clipboard
+• Export structure to text file
 
-💡 Все файлы обрабатываются локально в вашем браузере!`);
+💡 All files are processed locally in your browser!`);
             }
         });
     </script>
     
-    <!-- Подключаем библиотеку JSZip для работы с ZIP-архивами -->
+    <!-- Include JSZip library for working with ZIP archives -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </body>
 </html>
