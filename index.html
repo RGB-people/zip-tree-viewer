@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="favicon.png">
+    <title>ZIP Tree Viewer Pro</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        }
+        
+        body {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: #252526;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+        }
+        
+        header {
+            background: #0e2941;
+            color: #d4d4d4;
+            padding: 20px;
+            border-bottom: 1px solid #3e3e42;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .header-info {
+            flex: 1;
+        }
+        
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+            color: #569cd6;
+        }
+        
+        .subtitle {
+            font-size: 1rem;
+            opacity: 0.8;
+        }
+        
+        .header-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .upload-section {
+            padding: 25px;
+            text-align: center;
+            border-bottom: 1px solid #3e3e42;
+        }
+        
+        .upload-area {
+            border: 2px dashed #569cd6;
+            border-radius: 6px;
+            padding: 30px 20px;
+            margin: 20px 0;
+            transition: all 0.3s;
+            background-color: #2d2d30;
+            cursor: pointer;
+        }
+        
+        .upload-area:hover {
+            background-color: #323233;
+            border-color: #4ec9b0;
+        }
+        
+        .upload-area.highlight {
+            background-color: #323233;
+            border-color: #4ec9b0;
+        }
+        
+        .upload-icon {
+            font-size: 40px;
+            color: #569cd6;
+            margin-bottom: 10px;
+        }
+        
+        .upload-text {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            color: #d4d4d4;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .btn {
+            background: #0e639c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .btn:hover {
+            background: #1177bb;
+            transform: translateY(-1px);
+        }
+        
+        .btn-secondary {
+            background: #464647;
+        }
+        
+        .btn-secondary:hover {
+            background: #525253;
+        }
+        
+        .btn-success {
+            background: #2d7d2d;
+        }
+        
+        .btn-success:hover {
+            background: #358c35;
+        }
+        
+        .btn-warning {
+            background: #d16969;
+        }
+        
+        .btn-warning:hover {
+            background: #d18669;
+        }
+        
+        .result-section {
+            padding: 25px;
+            display: none;
+        }
+        
+        .controls-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+            position: relative;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 8px 12px;
+            background: #2d2d30;
+            border: 1px solid #3e3e42;
+            border-radius: 4px;
+            color: #d4d4d4;
+        }
+        
+        .search-results {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.8rem;
+            color: #6a9955;
+        }
+        
+        .view-options {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .view-options .btn {
+            padding: 8px 12px;
+        }
+        
+        .view-options .btn.active {
+            background: #569cd6;
+        }
+        
+        .file-info {
+            background-color: #2d2d30;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 4px solid #569cd6;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .archive-info {
+            background: #2d2d30;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            border-left: 4px solid #6a9955;
+        }
+        
+        .file-structure {
+            background-color: #1e1e1e;
+            border-radius: 6px;
+            padding: 20px;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+            max-height: 500px;
+            overflow-y: auto;
+            white-space: pre;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        
+        .file-structure.list {
+            white-space: normal;
+        }
+        
+        .file-structure.grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            white-space: normal;
+        }
+        
+        .tree-output {
+            color: #d4d4d4;
+        }
+        
+        .tree-folder {
+            color: #569cd6;
+            font-weight: bold;
+        }
+        
+        .tree-file {
+            color: #d4d4d4;
+        }
+        
+        .tree-line {
+            color: #6a9955;
+        }
+        
+        .file-item {
+            padding: 8px 10px;
+            border-bottom: 1px solid #2d2d30;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .file-item:hover {
+            background: #2d2d30;
+        }
+        
+        .file-item.large-file {
+            background: rgba(255, 100, 100, 0.1);
+            border-left: 3px solid #ff6b6b;
+        }
+        
+        .file-item.folder {
+            font-weight: bold;
+            color: #569cd6;
+        }
+        
+        .file-icon {
+            font-size: 1.2rem;
+        }
+        
+        .file-name {
+            flex: 1;
+        }
+        
+        .file-size {
+            color: #6a9955;
+            font-size: 0.8rem;
+        }
+        
+        .file-content {
+            background: #1e1e1e;
+            border-radius: 6px;
+            padding: 20px;
+            margin-top: 20px;
+            max-height: 400px;
+            overflow: auto;
+            display: none;
+        }
+        
+        .file-content-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #3e3e42;
+        }
+        
+        .file-content pre {
+            white-space: pre-wrap;
+            font-family: 'Consolas', monospace;
+            line-height: 1.4;
+        }
+        
+        .binary-warning {
+            text-align: center;
+            padding: 40px;
+            color: #d18669;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            display: none;
+        }
+        
+        .spinner {
+            border: 4px solid #2d2d30;
+            border-top: 4px solid #569cd6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #858585;
+        }
+        
+        .empty-icon {
+            font-size: 40px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #858585;
+            margin-top: 20px;
+            font-size: 0.9rem;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .stat-item {
+            background: #2d2d30;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #569cd6;
+        }
+        
+        .stat-label {
+            font-size: 0.8rem;
+            color: #858585;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+            }
+            
+            header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            .header-controls {
+                justify-content: center;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+            
+            .upload-section, .result-section {
+                padding: 15px;
+            }
+            
+            .file-info {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .controls-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-info">
+                <h1>ZIP Tree Viewer Pro</h1>
+                <p class="subtitle">Просмотр структуры и содержимого ZIP-архивов</p>
+            </div>
+            <div class="header-controls">
+                <button class="btn btn-secondary" id="historyBtn">📚 История</button>
+                <button class="btn btn-secondary" id="helpBtn">❓ Помощь</button>
+            </div>
+        </header>
+        
+        <section class="upload-section">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📁</div>
+                <p class="upload-text">Перетащите ZIP-файл сюда или нажмите для выбора</p>
+                <button class="btn" id="browseBtn">📁 Выбрать файл</button>
+                <input type="file" id="fileInput" class="file-input" accept=".zip">
+            </div>
+        </section>
+        
+        <section class="result-section" id="resultSection">
+            <div class="controls-row">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="Поиск файлов...">
+                    <span class="search-results" id="searchResults"></span>
+                </div>
+                <div class="view-options">
+                    <button class="btn active" data-view="tree">🌳 Tree</button>
+                    <button class="btn" data-view="list">📋 List</button>
+                    <button class="btn" data-view="grid">🔲 Grid</button>
+                </div>
+                <button class="btn btn-success" id="copyBtn">📋 Копировать</button>
+                <button class="btn btn-secondary" id="exportBtn">💾 Экспорт</button>
+                <button class="btn btn-warning" id="resetBtn">🔄 Новый файл</button>
+            </div>
+            
+            <div class="file-info">
+                <div>
+                    <strong id="fileName"></strong>
+                    <div id="fileDetails"></div>
+                </div>
+                <div id="fileStats"></div>
+            </div>
+            
+            <div class="archive-info" id="archiveInfo"></div>
+            
+            <div class="file-structure tree" id="fileStructure">
+                <!-- Структура файлов будет отображаться здесь -->
+            </div>
+            
+            <div class="file-content" id="fileContent">
+                <div class="file-content-header">
+                    <strong id="contentFileName"></strong>
+                    <button class="btn btn-secondary" id="closeContentBtn">✕ Закрыть</button>
+                </div>
+                <pre id="contentText"></pre>
+            </div>
+        </section>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Анализируем архив...</p>
+        </div>
+    </div>
+    
+    <footer>
+        <p>© 2024 ZIP Tree Viewer Pro | Все файлы обрабатываются локально в вашем браузере</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const fileInput = document.getElementById('fileInput');
+            const uploadArea = document.getElementById('uploadArea');
+            const resultSection = document.getElementById('resultSection');
+            const fileStructure = document.getElementById('fileStructure');
+            const fileName = document.getElementById('fileName');
+            const fileDetails = document.getElementById('fileDetails');
+            const fileStats = document.getElementById('fileStats');
+            const archiveInfo = document.getElementById('archiveInfo');
+            const resetBtn = document.getElementById('resetBtn');
+            const browseBtn = document.getElementById('browseBtn');
+            const copyBtn = document.getElementById('copyBtn');
+            const exportBtn = document.getElementById('exportBtn');
+            const searchInput = document.getElementById('searchInput');
+            const searchResults = document.getElementById('searchResults');
+            const viewButtons = document.querySelectorAll('.view-options .btn');
+            const loading = document.getElementById('loading');
+            const fileContent = document.getElementById('fileContent');
+            const contentFileName = document.getElementById('contentFileName');
+            const contentText = document.getElementById('contentText');
+            const closeContentBtn = document.getElementById('closeContentBtn');
+            const historyBtn = document.getElementById('historyBtn');
+            const helpBtn = document.getElementById('helpBtn');
+
+            let currentZip = null;
+            let currentView = 'tree';
+            let allFiles = [];
+
+            // Инициализация
+            init();
+
+            function init() {
+                setupEventListeners();
+                loadHistory();
+            }
+
+            function setupEventListeners() {
+                // Основные обработчики
+                browseBtn.addEventListener('click', () => {
+                    fileInput.value = '';
+                    fileInput.click();
+                });
+
+                uploadArea.addEventListener('click', (e) => {
+                    if (e.target !== browseBtn) {
+                        fileInput.value = '';
+                        fileInput.click();
+                    }
+                });
+
+                fileInput.addEventListener('change', function() {
+                    if (this.files.length > 0) {
+                        handleFiles(this.files);
+                    }
+                });
+
+                // Drag & Drop
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    uploadArea.addEventListener(eventName, preventDefaults, false);
+                });
+
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    uploadArea.addEventListener(eventName, highlight, false);
+                });
+
+                ['dragleave', 'drop'].forEach(eventName => {
+                    uploadArea.addEventListener(eventName, unhighlight, false);
+                });
+
+                uploadArea.addEventListener('drop', handleDrop, false);
+
+                // Кнопки управления
+                resetBtn.addEventListener('click', resetForm);
+                copyBtn.addEventListener('click', copyStructure);
+                exportBtn.addEventListener('click', exportToText);
+                closeContentBtn.addEventListener('click', closeFileContent);
+
+                // Поиск
+                searchInput.addEventListener('input', performSearch);
+
+                // Режимы просмотра
+                viewButtons.forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        viewButtons.forEach(b => b.classList.remove('active'));
+                        this.classList.add('active');
+                        currentView = this.dataset.view;
+                        fileStructure.className = `file-structure ${currentView}`;
+                        renderFileStructure();
+                    });
+                });
+
+                // Дополнительные кнопки
+                historyBtn.addEventListener('click', showHistory);
+                helpBtn.addEventListener('click', showHelp);
+            }
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            function highlight() {
+                uploadArea.classList.add('highlight');
+            }
+
+            function unhighlight() {
+                uploadArea.classList.remove('highlight');
+            }
+
+            function handleDrop(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                if (files.length > 0) {
+                    handleFiles(files);
+                }
+            }
+
+            function handleFiles(files) {
+                const file = files[0];
+                if (!file.name.toLowerCase().endsWith('.zip')) {
+                    alert('Пожалуйста, выберите файл с расширением .zip');
+                    return;
+                }
+
+                showLoading(true);
+                fileName.textContent = file.name;
+                fileDetails.textContent = `Размер: ${formatFileSize(file.size)}`;
+
+                processZipFile(file);
+            }
+
+            function processZipFile(file) {
+                const zip = new JSZip();
+                currentZip = zip;
+
+                zip.loadAsync(file)
+                    .then(function(zip) {
+                        allFiles = Object.keys(zip.files);
+                        displayArchiveInfo(zip, file);
+                        renderFileStructure();
+                        showLoading(false);
+                        resultSection.style.display = 'block';
+                        saveToHistory({
+                            name: file.name,
+                            size: file.size,
+                            date: new Date().toISOString()
+                        });
+                    })
+                    .catch(function(error) {
+                        console.error('Ошибка при чтении ZIP-архива:', error);
+                        showError('Не удалось прочитать ZIP-архив. Убедитесь, что файл не поврежден.');
+                        showLoading(false);
+                    });
+            }
+
+            function displayArchiveInfo(zip, file) {
+                const totalFiles = allFiles.filter(path => !path.endsWith('/')).length;
+                const totalFolders = allFiles.filter(path => path.endsWith('/')).length;
+                const totalSize = Object.values(zip.files).reduce((sum, file) => 
+                    sum + file._data.uncompressedSize, 0);
+                
+                const fileTypes = getFileTypeStats(zip);
+                const compressionRatio = ((file.size / totalSize) * 100).toFixed(1);
+
+                archiveInfo.innerHTML = `
+                    <strong>📊 Информация об архиве:</strong>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-value">${totalFiles}</div>
+                            <div class="stat-label">Файлов</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">${totalFolders}</div>
+                            <div class="stat-label">Папок</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">${formatFileSize(totalSize)}</div>
+                            <div class="stat-label">Общий размер</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">${compressionRatio}%</div>
+                            <div class="stat-label">Сжатие</div>
+                        </div>
+                    </div>
+                `;
+
+                // Обновляем статистику в fileStats
+                const topExtensions = Object.entries(fileTypes)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 3)
+                    .map(([ext, count]) => `${ext}: ${count}`)
+                    .join(', ');
+
+                fileStats.innerHTML = `Типы файлов: ${topExtensions}`;
+                fileDetails.textContent += ` | Файлов: ${totalFiles} | Папок: ${totalFolders}`;
+            }
+
+            function renderFileStructure() {
+                if (!currentZip) return;
+
+                if (currentView === 'tree') {
+                    renderTreeView();
+                } else if (currentView === 'list') {
+                    renderListView();
+                } else if (currentView === 'grid') {
+                    renderGridView();
+                }
+            }
+
+            function renderTreeView() {
+                let treeOutput = '';
+                let fileCount = 0;
+                let folderCount = 0;
+
+                const root = { name: '', children: {}, isRoot: true };
+                
+                allFiles.forEach(path => {
+                    if (path.endsWith('/')) return;
+                    
+                    const parts = path.split('/').filter(part => part !== '');
+                    let current = root;
+                    
+                    for (let i = 0; i < parts.length; i++) {
+                        const part = parts[i];
+                        const isFile = i === parts.length - 1;
+                        
+                        if (!current.children[part]) {
+                            current.children[part] = {
+                                name: part,
+                                children: {},
+                                isFile: isFile,
+                                isFolder: !isFile,
+                                path: path,
+                                size: isFile ? currentZip.files[path]._data.uncompressedSize : 0
+                            };
+                        }
+                        
+                        if (!isFile) {
+                            current = current.children[part];
+                        }
+                    }
+                });
+
+                function buildTree(node, prefix = '', isLast = true) {
+                    const entries = Object.values(node.children);
+                    if (entries.length === 0) return;
+                    
+                    entries.sort((a, b) => {
+                        if (a.isFolder && !b.isFolder) return -1;
+                        if (!a.isFolder && b.isFolder) return 1;
+                        return a.name.localeCompare(b.name);
+                    });
+                    
+                    entries.forEach((entry, index) => {
+                        const isLastEntry = index === entries.length - 1;
+                        const connector = isLastEntry ? '└── ' : '├── ';
+                        const currentPrefix = isLastEntry ? '    ' : '│   ';
+                        
+                        if (entry.isFolder) {
+                            folderCount++;
+                            treeOutput += prefix + connector + '<span class="tree-folder">' + entry.name + '</span>\n';
+                            buildTree(entry, prefix + currentPrefix, isLastEntry);
+                        } else {
+                            fileCount++;
+                            const size = entry.size ? ` <span class="tree-line">[${formatFileSize(entry.size)}]</span>` : '';
+                            treeOutput += prefix + connector + 
+                                `<span class="tree-file" data-path="${entry.path}" data-size="${entry.size}">${entry.name}</span>` + 
+                                size + '\n';
+                        }
+                    });
+                }
+
+                treeOutput += '<span class="tree-line">.</span>\n';
+                buildTree(root, '', true);
+                
+                treeOutput += '\n<span class="tree-line">' + 
+                             folderCount + ' директорий, ' + 
+                             fileCount + ' файлов</span>\n';
+
+                fileStructure.innerHTML = '<div class="tree-output">' + treeOutput + '</div>';
+
+                // Добавляем обработчики кликов для файлов
+                document.querySelectorAll('.tree-file').forEach(el => {
+                    el.style.cursor = 'pointer';
+                    el.addEventListener('click', function() {
+                        const filePath = this.dataset.path;
+                        showFileContent(filePath);
+                    });
+                });
+            }
+
+            function renderListView() {
+                let html = '';
+                const files = allFiles.filter(path => !path.endsWith('/'))
+                    .sort((a, b) => a.localeCompare(b));
+
+                files.forEach(path => {
+                    const file = currentZip.files[path];
+                    const name = path.split('/').pop();
+                    const size = file._data.uncompressedSize;
+                    const icon = getFileIcon(name);
+                    const isLarge = size > 1024 * 1024; // > 1MB
+                    
+                    html += `
+                        <div class="file-item ${isLarge ? 'large-file' : ''}" data-path="${path}">
+                            <span class="file-icon">${icon}</span>
+                            <span class="file-name">${name}</span>
+                            <span class="file-size">${formatFileSize(size)}</span>
+                        </div>
+                    `;
+                });
+
+                fileStructure.innerHTML = html;
+
+                // Добавляем обработчики кликов
+                document.querySelectorAll('.file-item').forEach(el => {
+                    el.addEventListener('click', function() {
+                        const filePath = this.dataset.path;
+                        showFileContent(filePath);
+                    });
+                });
+            }
+
+            function renderGridView() {
+                let html = '';
+                const files = allFiles.filter(path => !path.endsWith('/'))
+                    .sort((a, b) => a.localeCompare(b));
+
+                files.forEach(path => {
+                    const file = currentZip.files[path];
+                    const name = path.split('/').pop();
+                    const size = file._data.uncompressedSize;
+                    const icon = getFileIcon(name);
+                    const isLarge = size > 1024 * 1024;
+                    
+                    html += `
+                        <div class="file-item ${isLarge ? 'large-file' : ''}" data-path="${path}">
+                            <div style="text-align: center;">
+                                <div class="file-icon" style="font-size: 2rem;">${icon}</div>
+                                <div class="file-name" style="word-break: break-word; margin: 5px 0;">${name}</div>
+                                <div class="file-size">${formatFileSize(size)}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                fileStructure.innerHTML = html;
+
+                document.querySelectorAll('.file-item').forEach(el => {
+                    el.addEventListener('click', function() {
+                        const filePath = this.dataset.path;
+                        showFileContent(filePath);
+                    });
+                });
+            }
+
+            async function showFileContent(filePath) {
+                if (!currentZip) return;
+
+                showLoading(true);
+                
+                try {
+                    const file = currentZip.files[filePath];
+                    contentFileName.textContent = filePath;
+                    
+                    // Проверяем, является ли файл текстовым
+                    const extension = filePath.split('.').pop().toLowerCase();
+                    const textExtensions = ['txt', 'md', 'c', 'h', 'cpp', 'hpp', 'js', 'html', 'css', 'py', 'java', 'json', 'xml', 'csv', 'log', 'cfg', 'conf', 'ini', 'rs', 'asm'];
+                    
+                    if (textExtensions.includes(extension)) {
+                        const content = await file.async('text');
+                        contentText.textContent = content;
+                        contentText.style.display = 'block';
+                        fileContent.querySelector('.binary-warning')?.remove();
+                    } else {
+                        contentText.style.display = 'none';
+                        if (!fileContent.querySelector('.binary-warning')) {
+                            const warning = document.createElement('div');
+                            warning.className = 'binary-warning';
+                            warning.innerHTML = `
+                                <div style="font-size: 3rem; margin-bottom: 10px;">🔒</div>
+                                <p>Этот файл не может быть отображен как текст</p>
+                                <p style="font-size: 0.8rem; margin-top: 10px;">Формат: ${extension || 'неизвестен'}</p>
+                            `;
+                            fileContent.appendChild(warning);
+                        }
+                    }
+                    
+                    fileContent.style.display = 'block';
+                    fileContent.scrollIntoView({ behavior: 'smooth' });
+                } catch (error) {
+                    console.error('Ошибка при чтении файла:', error);
+                    contentText.textContent = 'Ошибка при чтении файла';
+                }
+                
+                showLoading(false);
+            }
+
+            function closeFileContent() {
+                fileContent.style.display = 'none';
+            }
+
+            function performSearch() {
+                const query = searchInput.value.toLowerCase();
+                if (!query) {
+                    searchResults.textContent = '';
+                    renderFileStructure();
+                    return;
+                }
+
+                const results = allFiles.filter(path => 
+                    path.toLowerCase().includes(query) && !path.endsWith('/')
+                );
+
+                searchResults.textContent = `Найдено: ${results.length}`;
+
+                // Подсветка результатов в текущем представлении
+                if (currentView === 'tree') {
+                    highlightInTree(results);
+                } else {
+                    highlightInList(results);
+                }
+            }
+
+            function highlightInTree(results) {
+                const treeOutput = document.querySelector('.tree-output');
+                if (!treeOutput) return;
+
+                let html = treeOutput.innerHTML;
+                results.forEach(path => {
+                    const fileName = path.split('/').pop();
+                    const regex = new RegExp(`(${fileName})`, 'gi');
+                    html = html.replace(regex, '<mark>$1</mark>');
+                });
+                treeOutput.innerHTML = html;
+            }
+
+            function highlightInList(results) {
+                document.querySelectorAll('.file-item').forEach(item => {
+                    const path = item.dataset.path;
+                    if (results.includes(path)) {
+                        item.style.background = 'rgba(86, 156, 214, 0.2)';
+                        item.style.borderLeft = '3px solid #569cd6';
+                    } else {
+                        item.style.background = '';
+                        item.style.borderLeft = '';
+                    }
+                });
+            }
+
+            function copyStructure() {
+                const text = currentView === 'tree' 
+                    ? document.querySelector('.tree-output').textContent
+                    : generateTextStructure();
+                
+                navigator.clipboard.writeText(text).then(() => {
+                    copyBtn.textContent = '✅ Скопировано!';
+                    setTimeout(() => copyBtn.textContent = '📋 Копировать', 2000);
+                });
+            }
+
+            function exportToText() {
+                const text = currentView === 'tree' 
+                    ? document.querySelector('.tree-output').textContent
+                    : generateTextStructure();
+                
+                const blob = new Blob([text], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${fileName.textContent || 'archive'}_structure.txt`;
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+
+            function generateTextStructure() {
+                let text = `Структура архива: ${fileName.textContent}\n\n`;
+                allFiles.filter(path => !path.endsWith('/')).forEach(path => {
+                    const file = currentZip.files[path];
+                    text += `${path} [${formatFileSize(file._data.uncompressedSize)}]\n`;
+                });
+                return text;
+            }
+
+            function resetForm() {
+                resultSection.style.display = 'none';
+                fileInput.value = '';
+                fileStructure.innerHTML = '';
+                fileName.textContent = '';
+                fileDetails.textContent = '';
+                fileStats.innerHTML = '';
+                archiveInfo.innerHTML = '';
+                searchInput.value = '';
+                searchResults.textContent = '';
+                fileContent.style.display = 'none';
+                currentZip = null;
+                allFiles = [];
+            }
+
+            function showLoading(show) {
+                loading.style.display = show ? 'block' : 'none';
+            }
+
+            function showError(message) {
+                fileStructure.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">⚠️</div>
+                        <p>${message}</p>
+                    </div>
+                `;
+            }
+
+            // Вспомогательные функции
+            function formatFileSize(bytes) {
+                if (bytes === 0) return '0 Б';
+                const k = 1024;
+                const sizes = ['Б', 'КБ', 'МБ', 'ГБ'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+
+            function getFileIcon(filename) {
+                const ext = filename.split('.').pop().toLowerCase();
+                const icons = {
+                    'c': '📟', 'h': '📟', 'cpp': '📟', 'hpp': '📟',
+                    'rs': '🦀', 
+                    'asm': '⚙️', 's': '⚙️',
+                    'cfg': '⚙️', 'mk': '⚙️', 'ld': '⚙️', 'ini': '⚙️', 'conf': '⚙️',
+                    'txt': '📄', 'log': '📄',
+                    'md': '📖',
+                    'py': '🐍', 'js': '📜', 'html': '🌐', 'css': '🎨', 'php': '🐘',
+                    'json': '📋', 'xml': '📋', 'yaml': '📋', 'yml': '📋',
+                    'zip': '📦', 'rar': '📦', 'tar': '📦', 'gz': '📦',
+                    'exe': '⚡', 'dll': '⚡', 'so': '⚡',
+                    'jpg': '🖼️', 'png': '🖼️', 'gif': '🖼️', 'svg': '🖼️', 'ico': '🖼️',
+                    'pdf': '📕', 'doc': '📘', 'docx': '📘'
+                };
+                return icons[ext] || '📄';
+            }
+
+            function getFileTypeStats(zip) {
+                const extensions = {};
+                allFiles.forEach(path => {
+                    if (!path.endsWith('/')) {
+                        const ext = path.split('.').pop().toLowerCase() || 'no extension';
+                        extensions[ext] = (extensions[ext] || 0) + 1;
+                    }
+                });
+                return extensions;
+            }
+
+            function saveToHistory(fileInfo) {
+                const history = JSON.parse(localStorage.getItem('zipHistory') || '[]');
+                const existingIndex = history.findIndex(item => item.name === fileInfo.name);
+                if (existingIndex !== -1) {
+                    history.splice(existingIndex, 1);
+                }
+                history.unshift(fileInfo);
+                localStorage.setItem('zipHistory', JSON.stringify(history.slice(0, 10)));
+            }
+
+            function loadHistory() {
+                // Можно реализовать отображение истории
+            }
+
+            function showHistory() {
+                alert('Функция истории будет реализована в следующей версии!');
+            }
+
+            function showHelp() {
+                alert(`ZIP Tree Viewer Pro - Помощь
+
+📁 Загрузка файлов:
+• Перетащите ZIP-файл в выделенную область
+• Или нажмите "Выбрать файл"
+
+🔍 Поиск:
+• Используйте поле поиска для быстрого нахождения файлов
+
+👁️ Режимы просмотра:
+• 🌳 Tree - древовидная структура
+• 📋 List - список файлов
+• 🔲 Grid - сетка с иконками
+
+📄 Просмотр файлов:
+• Нажмите на любой файл для просмотра его содержимого
+• Поддерживаются текстовые форматы
+
+📋 Действия:
+• Копирование структуры в буфер обмена
+• Экспорт структуры в текстовый файл
+
+💡 Все файлы обрабатываются локально в вашем браузере!`);
+            }
+        });
+    </script>
+    
+    <!-- Подключаем библиотеку JSZip для работы с ZIP-архивами -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</body>
+</html>
