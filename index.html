@@ -710,38 +710,89 @@
             }
 
             function renderTreeView() {
-                let treeOutput = '';
-                let fileCount = 0;
-                let folderCount = 0;
+    let treeOutput = '';
+    let fileCount = 0;
+    let folderCount = 0;
 
-                const root = { name: '', children: {}, isRoot: true };
-                
-                allFiles.forEach(path => {
-                    if (path.endsWith('/')) return;
-                    
-                    const parts = path.split('/').filter(part => part !== '');
-                    let current = root;
-                    
-                    for (let i = 0; i < parts.length; i++) {
-                        const part = parts[i];
-                        const isFile = i === parts.length - 1;
-                        
-                        if (!current.children[part]) {
-                            current.children[part] = {
-                                name: part,
-                                children: {},
-                                isFile: isFile,
-                                isFolder: !isFile,
-                                path: path,
-                                size: isFile ? currentZip.files[path]._data.uncompressedSize : 0
-                            };
-                        }
-                        
-                        if (!isFile) {
-                            current = current.children[part];
-                        }
-                    }
-                });
+    const root = { name: '', children: {}, isRoot: true };
+    
+    allFiles.forEach(path => {
+        if (path.endsWith('/')) return;
+        
+        const parts = path.split('/').filter(part => part !== '');
+        let current = root;
+        
+        for (let i = 0; i < parts.length; i++) {
+            const part = parts[i];
+            const isFile = i === parts.length - 1;
+            
+            if (!current.children[part]) {
+                current.children[part] = {
+                    name: part,
+                    children: {},
+                    isFile: isFile,
+                    isFolder: !isFile,
+                    path: path,
+                    size: isFile ? currentZip.files[path]._data.uncompressedSize : 0
+                };
+            }
+            
+            if (!isFile) {
+                current = current.children[part];
+            }
+        }
+    });
+
+    function buildTree(node, prefix = '', isLast = true) {
+        const entries = Object.values(node.children);
+        if (entries.length === 0) return;
+        
+        // Исправленная сортировка
+        entries.sort((a, b) => {
+            if (a.isFolder && !b.isFolder) return -1;
+            if (!a.isFolder && b.isFolder) return 1;
+            return a.name.localeCompare(b.name, 'en', { sensitivity: 'base' });
+        });
+        
+        entries.forEach((entry, index) => {
+            const isLastEntry = index === entries.length - 1;
+            // Исправленные символы псевдографики
+            const connector = isLastEntry ? '└── ' : '├── ';
+            const currentPrefix = isLastEntry ? '    ' : '│   ';
+            
+            if (entry.isFolder) {
+                folderCount++;
+                treeOutput += prefix + connector + '<span class="tree-folder">' + entry.name + '</span>\n';
+                buildTree(entry, prefix + currentPrefix, isLastEntry);
+            } else {
+                fileCount++;
+                const size = entry.size ? ` <span class="tree-line">[${formatFileSize(entry.size)}]</span>` : '';
+                treeOutput += prefix + connector + 
+                    `<span class="tree-file" data-path="${entry.path}" data-size="${entry.size}">${entry.name}</span>` + 
+                    size + '\n';
+            }
+        });
+    }
+
+    // Исправленный вывод
+    treeOutput += '<span class="tree-line">.</span>\n';
+    buildTree(root, '', true);
+    
+    treeOutput += '\n<span class="tree-line">' + 
+                 folderCount + ' directories, ' + 
+                 fileCount + ' files</span>\n';
+
+    fileStructure.innerHTML = '<div class="tree-output">' + treeOutput + '</div>';
+
+    // Обработчики кликов для файлов
+    document.querySelectorAll('.tree-file').forEach(el => {
+        el.style.cursor = 'pointer';
+        el.addEventListener('click', function() {
+            const filePath = this.dataset.path;
+            showFileContent(filePath);
+        });
+    });
+}
 
                 function buildTree(node, prefix = '', isLast = true) {
                     const entries = Object.values(node.children);
