@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="favicon.png">
     <title>ZIP Tree Viewer</title>
-    <link rel="manifest" href="manifest.json">
     <style>
         * {
             margin: 0;
@@ -308,7 +307,7 @@
         
         .file-content-header {
             display: flex;
-            justify-content: between;
+            justify-content: space-between;
             align-items: center;
             margin-bottom: 15px;
             padding-bottom: 10px;
@@ -391,6 +390,52 @@
         .stat-label {
             font-size: 0.8rem;
             color: #858585;
+        }
+        
+        .security-check {
+            background: #2d2d30;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 15px 0;
+            border-left: 4px solid #d16969;
+        }
+        
+        .security-check.safe {
+            border-left-color: #6a9955;
+        }
+        
+        .security-check.warning {
+            border-left-color: #d18669;
+        }
+        
+        .security-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 8px 0;
+        }
+        
+        .security-icon {
+            font-size: 1.2rem;
+        }
+        
+        .security-warning {
+            background: rgba(209, 105, 105, 0.1);
+            border: 1px solid #d16969;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        
+        .suspicious-file {
+            background: rgba(209, 105, 105, 0.2) !important;
+            border-left: 3px solid #d16969 !important;
+        }
+        
+        .file-warning {
+            color: #d18669;
+            font-size: 0.9rem;
+            margin-left: 10px;
         }
         
         @media (max-width: 768px) {
@@ -499,8 +544,10 @@
         <p>© 2025 ZIP Tree Viewer | All files are processed locally in your browser</p>
     </footer>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Get all elements
             const fileInput = document.getElementById('fileInput');
             const uploadArea = document.getElementById('uploadArea');
             const resultSection = document.getElementById('resultSection');
@@ -528,92 +575,72 @@
             let currentView = 'tree';
             let allFiles = [];
 
-            // Initialization
+            // Initialize
             init();
 
             function init() {
                 setupEventListeners();
-                loadHistory();
             }
 
-           // Исправленные обработчики событий
-function setupEventListeners() {
-    // Основные обработчики
-    browseBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        fileInput.value = '';
-        fileInput.click();
-    });
+            function setupEventListeners() {
+                // File selection handlers
+                browseBtn.addEventListener('click', function() {
+                    fileInput.value = '';
+                    fileInput.click();
+                });
 
-    uploadArea.addEventListener('click', function(e) {
-        if (e.target !== browseBtn && !e.target.classList.contains('file-input')) {
-            e.preventDefault();
-            fileInput.value = '';
-            fileInput.click();
-        }
-    });
+                uploadArea.addEventListener('click', function(e) {
+                    if (e.target !== browseBtn) {
+                        fileInput.value = '';
+                        fileInput.click();
+                    }
+                });
 
-    fileInput.addEventListener('change', function() {
-        if (this.files.length > 0) {
-            handleFiles(this.files);
-        }
-    });
+                fileInput.addEventListener('change', function() {
+                    if (this.files.length > 0) {
+                        handleFiles(this.files);
+                    }
+                });
 
-    // Drag & Drop
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-        uploadArea.addEventListener(eventName, preventDefaults, false);
-    });
+                // Drag & Drop
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    uploadArea.addEventListener(eventName, preventDefaults, false);
+                });
 
-    ['dragenter', 'dragover'].forEach(eventName => {
-        uploadArea.addEventListener(eventName, highlight, false);
-    });
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    uploadArea.addEventListener(eventName, highlight, false);
+                });
 
-    ['dragleave', 'drop'].forEach(eventName => {
-        uploadArea.addEventListener(eventName, unhighlight, false);
-    });
+                ['dragleave', 'drop'].forEach(eventName => {
+                    uploadArea.addEventListener(eventName, unhighlight, false);
+                });
 
-    uploadArea.addEventListener('drop', handleDrop, false);
-}
+                uploadArea.addEventListener('drop', handleDrop, false);
 
-function preventDefaults(e) {
-    e.preventDefault();
-    e.stopPropagation();
-}
+                // Control buttons
+                resetBtn.addEventListener('click', resetForm);
+                copyBtn.addEventListener('click', copyStructure);
+                exportBtn.addEventListener('click', exportToText);
+                closeContentBtn.addEventListener('click', closeFileContent);
 
-function highlight() {
-    uploadArea.classList.add('highlight');
-}
+                // Search
+                searchInput.addEventListener('input', performSearch);
 
-function unhighlight() {
-    uploadArea.classList.remove('highlight');
-}
+                // View modes
+                viewButtons.forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        viewButtons.forEach(b => b.classList.remove('active'));
+                        this.classList.add('active');
+                        currentView = this.dataset.view;
+                        fileStructure.className = `file-structure ${currentView}`;
+                        renderFileStructure();
+                    });
+                });
 
-function handleDrop(e) {
-    const dt = e.dataTransfer;
-    const files = dt.files;
-    if (files.length > 0) {
-        handleFiles(files);
-    }
-}
-
-function handleFiles(files) {
-    const file = files[0];
-    if (!file) return;
-    
-    // Проверяем, что файл имеет расширение .zip
-    if (!file.name.toLowerCase().endsWith('.zip')) {
-        alert('Пожалуйста, выберите файл с расширением .zip');
-        resetForm();
-        return;
-    }
-
-    showLoading(true);
-    fileName.textContent = file.name;
-    fileDetails.textContent = `Размер: ${formatFileSize(file.size)}`;
-
-    processZipFile(file);
-}
+                // Additional buttons
+                historyBtn.addEventListener('click', showHistory);
+                helpBtn.addEventListener('click', showHelp);
+            }
 
             function preventDefaults(e) {
                 e.preventDefault();
@@ -638,6 +665,8 @@ function handleFiles(files) {
 
             function handleFiles(files) {
                 const file = files[0];
+                if (!file) return;
+                
                 if (!file.name.toLowerCase().endsWith('.zip')) {
                     alert('Please select a file with .zip extension');
                     return;
@@ -729,89 +758,38 @@ function handleFiles(files) {
             }
 
             function renderTreeView() {
-    let treeOutput = '';
-    let fileCount = 0;
-    let folderCount = 0;
+                let treeOutput = '';
+                let fileCount = 0;
+                let folderCount = 0;
 
-    const root = { name: '', children: {}, isRoot: true };
-    
-    allFiles.forEach(path => {
-        if (path.endsWith('/')) return;
-        
-        const parts = path.split('/').filter(part => part !== '');
-        let current = root;
-        
-        for (let i = 0; i < parts.length; i++) {
-            const part = parts[i];
-            const isFile = i === parts.length - 1;
-            
-            if (!current.children[part]) {
-                current.children[part] = {
-                    name: part,
-                    children: {},
-                    isFile: isFile,
-                    isFolder: !isFile,
-                    path: path,
-                    size: isFile ? currentZip.files[path]._data.uncompressedSize : 0
-                };
-            }
-            
-            if (!isFile) {
-                current = current.children[part];
-            }
-        }
-    });
-
-    function buildTree(node, prefix = '', isLast = true) {
-        const entries = Object.values(node.children);
-        if (entries.length === 0) return;
-        
-        // Исправленная сортировка
-        entries.sort((a, b) => {
-            if (a.isFolder && !b.isFolder) return -1;
-            if (!a.isFolder && b.isFolder) return 1;
-            return a.name.localeCompare(b.name, 'en', { sensitivity: 'base' });
-        });
-        
-        entries.forEach((entry, index) => {
-            const isLastEntry = index === entries.length - 1;
-            // Исправленные символы псевдографики
-            const connector = isLastEntry ? '└── ' : '├── ';
-            const currentPrefix = isLastEntry ? '    ' : '│   ';
-            
-            if (entry.isFolder) {
-                folderCount++;
-                treeOutput += prefix + connector + '<span class="tree-folder">' + entry.name + '</span>\n';
-                buildTree(entry, prefix + currentPrefix, isLastEntry);
-            } else {
-                fileCount++;
-                const size = entry.size ? ` <span class="tree-line">[${formatFileSize(entry.size)}]</span>` : '';
-                treeOutput += prefix + connector + 
-                    `<span class="tree-file" data-path="${entry.path}" data-size="${entry.size}">${entry.name}</span>` + 
-                    size + '\n';
-            }
-        });
-    }
-
-    // Исправленный вывод
-    treeOutput += '<span class="tree-line">.</span>\n';
-    buildTree(root, '', true);
-    
-    treeOutput += '\n<span class="tree-line">' + 
-                 folderCount + ' directories, ' + 
-                 fileCount + ' files</span>\n';
-
-    fileStructure.innerHTML = '<div class="tree-output">' + treeOutput + '</div>';
-
-    // Обработчики кликов для файлов
-    document.querySelectorAll('.tree-file').forEach(el => {
-        el.style.cursor = 'pointer';
-        el.addEventListener('click', function() {
-            const filePath = this.dataset.path;
-            showFileContent(filePath);
-        });
-    });
-}
+                const root = { name: '', children: {}, isRoot: true };
+                
+                allFiles.forEach(path => {
+                    if (path.endsWith('/')) return;
+                    
+                    const parts = path.split('/').filter(part => part !== '');
+                    let current = root;
+                    
+                    for (let i = 0; i < parts.length; i++) {
+                        const part = parts[i];
+                        const isFile = i === parts.length - 1;
+                        
+                        if (!current.children[part]) {
+                            current.children[part] = {
+                                name: part,
+                                children: {},
+                                isFile: isFile,
+                                isFolder: !isFile,
+                                path: path,
+                                size: isFile ? currentZip.files[path]._data.uncompressedSize : 0
+                            };
+                        }
+                        
+                        if (!isFile) {
+                            current = current.children[part];
+                        }
+                    }
+                });
 
                 function buildTree(node, prefix = '', isLast = true) {
                     const entries = Object.values(node.children);
@@ -871,13 +849,15 @@ function handleFiles(files) {
                     const name = path.split('/').pop();
                     const size = file._data.uncompressedSize;
                     const icon = getFileIcon(name);
-                    const isLarge = size > 1024 * 1024; // > 1MB
+                    const isLarge = size > 1024 * 1024;
+                    const securityWarnings = analyzeFileSecurity({name: name, size: size});
                     
                     html += `
-                        <div class="file-item ${isLarge ? 'large-file' : ''}" data-path="${path}">
+                        <div class="file-item ${isLarge ? 'large-file' : ''} ${securityWarnings.length > 0 ? 'suspicious-file' : ''}" data-path="${path}">
                             <span class="file-icon">${icon}</span>
                             <span class="file-name">${name}</span>
                             <span class="file-size">${formatFileSize(size)}</span>
+                            ${securityWarnings.length > 0 ? '<span class="file-warning" title="' + securityWarnings.map(w => w.message).join(', ') + '">⚠️</span>' : ''}
                         </div>
                     `;
                 });
@@ -904,13 +884,15 @@ function handleFiles(files) {
                     const size = file._data.uncompressedSize;
                     const icon = getFileIcon(name);
                     const isLarge = size > 1024 * 1024;
+                    const securityWarnings = analyzeFileSecurity({name: name, size: size});
                     
                     html += `
-                        <div class="file-item ${isLarge ? 'large-file' : ''}" data-path="${path}">
+                        <div class="file-item ${isLarge ? 'large-file' : ''} ${securityWarnings.length > 0 ? 'suspicious-file' : ''}" data-path="${path}">
                             <div style="text-align: center;">
                                 <div class="file-icon" style="font-size: 2rem;">${icon}</div>
                                 <div class="file-name" style="word-break: break-word; margin: 5px 0;">${name}</div>
                                 <div class="file-size">${formatFileSize(size)}</div>
+                                ${securityWarnings.length > 0 ? '<div class="file-warning">⚠️</div>' : ''}
                             </div>
                         </div>
                     `;
@@ -933,9 +915,29 @@ function handleFiles(files) {
                 
                 try {
                     const file = currentZip.files[filePath];
+                    const fileName = filePath.split('/').pop();
+                    
+                    // Security analysis
+                    const fileInfo = {
+                        name: fileName,
+                        size: file._data.uncompressedSize
+                    };
+                    
+                    const securityWarnings = analyzeFileSecurity(fileInfo);
+                    
                     contentFileName.textContent = filePath;
                     
-                    // Check if the file is text-based
+                    // Show security warnings
+                    const securityHTML = displaySecurityWarnings(securityWarnings, fileName);
+                    
+                    // Add class for suspicious files
+                    if (securityWarnings.length > 0) {
+                        fileContent.classList.add('suspicious-file');
+                    } else {
+                        fileContent.classList.remove('suspicious-file');
+                    }
+                    
+                    // Check if file is text-based
                     const extension = filePath.split('.').pop().toLowerCase();
                     const textExtensions = ['txt', 'md', 'c', 'h', 'cpp', 'hpp', 'js', 'html', 'css', 'py', 'java', 'json', 'xml', 'csv', 'log', 'cfg', 'conf', 'ini', 'rs', 'asm'];
                     
@@ -944,6 +946,17 @@ function handleFiles(files) {
                         contentText.textContent = content;
                         contentText.style.display = 'block';
                         fileContent.querySelector('.binary-warning')?.remove();
+                        
+                        // Additional content check
+                        if (checkSuspiciousContent(content)) {
+                            const suspiciousWarning = document.createElement('div');
+                            suspiciousWarning.className = 'security-warning';
+                            suspiciousWarning.innerHTML = `
+                                <strong>⚠️ Suspicious content detected!</strong>
+                                <p>File contains patterns similar to malicious code.</p>
+                            `;
+                            contentText.parentNode.insertBefore(suspiciousWarning, contentText);
+                        }
                     } else {
                         contentText.style.display = 'none';
                         if (!fileContent.querySelector('.binary-warning')) {
@@ -953,6 +966,7 @@ function handleFiles(files) {
                                 <div style="font-size: 3rem; margin-bottom: 10px;">🔒</div>
                                 <p>This file cannot be displayed as text</p>
                                 <p style="font-size: 0.8rem; margin-top: 10px;">Format: ${extension || 'unknown'}</p>
+                                ${securityHTML}
                             `;
                             fileContent.appendChild(warning);
                         }
@@ -960,6 +974,7 @@ function handleFiles(files) {
                     
                     fileContent.style.display = 'block';
                     fileContent.scrollIntoView({ behavior: 'smooth' });
+                    
                 } catch (error) {
                     console.error('Error reading file:', error);
                     contentText.textContent = 'Error reading file';
@@ -1082,6 +1097,112 @@ function handleFiles(files) {
                 `;
             }
 
+            // Security functions
+            function analyzeFileSecurity(file) {
+                const warnings = [];
+                
+                // 1. File size check
+                if (file.size > 100 * 1024 * 1024) {
+                    warnings.push({
+                        type: 'size',
+                        message: 'File is very large (>100MB)',
+                        severity: 'warning'
+                    });
+                }
+                
+                // 2. File extension check
+                const dangerousExtensions = [
+                    'exe', 'scr', 'bat', 'cmd', 'ps1', 'vbs', 'js', 'jar', 
+                    'msi', 'com', 'pif', 'application', 'gadget', 'msc',
+                    'msp', 'hta', 'cpl', 'msh', 'msh1', 'msh2', 'mshxml',
+                    'msh1xml', 'msh2xml', 'scf', 'lnk', 'inf', 'reg'
+                ];
+                
+                const fileExtension = file.name.split('.').pop().toLowerCase();
+                if (dangerousExtensions.includes(fileExtension)) {
+                    warnings.push({
+                        type: 'extension',
+                        message: `Dangerous file extension: .${fileExtension}`,
+                        severity: 'danger'
+                    });
+                }
+                
+                // 3. Double extension check
+                if (file.name.includes('..') || file.name.match(/\.[a-z]{3,4}\.[a-z]{2,4}$/i)) {
+                    warnings.push({
+                        type: 'double_extension',
+                        message: 'Suspicious double extension',
+                        severity: 'danger'
+                    });
+                }
+                
+                // 4. Hidden files check
+                if (file.name.startsWith('.') || file.name.toLowerCase().includes('thumbs.db')) {
+                    warnings.push({
+                        type: 'hidden',
+                        message: 'Hidden or system file',
+                        severity: 'warning'
+                    });
+                }
+                
+                return warnings;
+            }
+
+            function displaySecurityWarnings(warnings, fileName) {
+                let html = `
+                    <div class="security-check ${warnings.length === 0 ? 'safe' : 'warning'}">
+                        <strong>🔒 Security check: ${fileName}</strong>
+                `;
+                
+                if (warnings.length === 0) {
+                    html += `
+                        <div class="security-item">
+                            <span class="security-icon">✅</span>
+                            <span>File passed basic security check</span>
+                        </div>
+                    `;
+                } else {
+                    warnings.forEach(warning => {
+                        const icon = warning.severity === 'danger' ? '🚫' : '⚠️';
+                        html += `
+                            <div class="security-item">
+                                <span class="security-icon">${icon}</span>
+                                <span>${warning.message}</span>
+                            </div>
+                        `;
+                    });
+                    
+                    html += `
+                        <div class="security-warning">
+                            <strong>Warning!</strong> This file contains suspicious characteristics. 
+                            Open it with caution.
+                        </div>
+                    `;
+                }
+                
+                html += '</div>';
+                return html;
+            }
+
+            function checkSuspiciousContent(content) {
+                const suspiciousPatterns = [
+                    /eval\s*\(/i,
+                    /document\.write/gi,
+                    /fromCharCode/gi,
+                    /unescape/gi,
+                    /exec\s*\(/gi,
+                    /system\s*\(/gi,
+                    /cmd\.exe/gi,
+                    /powershell/gi,
+                    /wscript\.shell/gi,
+                    /regsvr32/gi,
+                    /schtasks/gi,
+                    /base64_decode/gi
+                ];
+                
+                return suspiciousPatterns.some(pattern => pattern.test(content));
+            }
+
             // Helper functions
             function formatFileSize(bytes) {
                 if (bytes === 0) return '0 B';
@@ -1131,10 +1252,6 @@ function handleFiles(files) {
                 localStorage.setItem('zipHistory', JSON.stringify(history.slice(0, 10)));
             }
 
-            function loadHistory() {
-                // Can implement history display
-            }
-
             function showHistory() {
                 alert('History feature will be implemented in the next version!');
             }
@@ -1157,227 +1274,20 @@ function handleFiles(files) {
 📄 Viewing files:
 • Click on any file to view its contents
 • Text formats are supported
+• Security warnings for suspicious files
 
 📋 Actions:
 • Copy structure to clipboard
 • Export structure to text file
 
+🔒 Security:
+• Automatic file security checks
+• Warnings for dangerous file types
+• Content analysis for suspicious patterns
+
 💡 All files are processed locally in your browser!`);
             }
         });
     </script>
-    
-    <!-- Include JSZip library for working with ZIP archives -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script>
-           // Функции проверки безопасности
-           function analyzeFileSecurity(file) {
-               const warnings = [];
-               
-               // 1. Проверка размера файла
-               if (file.size > 100 * 1024 * 1024) { // 100MB
-                   warnings.push({
-                       type: 'size',
-                       message: 'Файл очень большой (>100MB)',
-                       severity: 'warning'
-                   });
-               }
-               
-               // 2. Проверка расширения файла
-               const dangerousExtensions = [
-                   'exe', 'scr', 'bat', 'cmd', 'ps1', 'vbs', 'js', 'jar', 
-                   'msi', 'com', 'pif', 'application', 'gadget', 'msc',
-                   'msp', 'hta', 'cpl', 'msh', 'msh1', 'msh2', 'mshxml',
-                   'msh1xml', 'msh2xml', 'scf', 'lnk', 'inf', 'reg'
-               ];
-               
-               const fileExtension = file.name.split('.').pop().toLowerCase();
-               if (dangerousExtensions.includes(fileExtension)) {
-                   warnings.push({
-                       type: 'extension',
-                       message: `Опасное расширение файла: .${fileExtension}`,
-                       severity: 'danger'
-                   });
-               }
-               
-               // 3. Проверка двойных расширений
-               if (file.name.includes('..') || file.name.match(/\.[a-z]{3,4}\.[a-z]{2,4}$/i)) {
-                   warnings.push({
-                       type: 'double_extension',
-                       message: 'Подозрительное двойное расширение',
-                       severity: 'danger'
-                   });
-               }
-               
-               // 4. Проверка на скрытые файлы
-               if (file.name.startsWith('.') || file.name.toLowerCase().includes('thumbs.db')) {
-                   warnings.push({
-                       type: 'hidden',
-                       message: 'Скрытый или системный файл',
-                       severity: 'warning'
-                   });
-               }
-               
-               return warnings;
-           }
-   
-           function displaySecurityWarnings(warnings, fileName) {
-               let html = `
-                   <div class="security-check ${warnings.length === 0 ? 'safe' : 'warning'}">
-                       <strong>🔒 Проверка безопасности: ${fileName}</strong>
-               `;
-               
-               if (warnings.length === 0) {
-                   html += `
-                       <div class="security-item">
-                           <span class="security-icon">✅</span>
-                           <span>Файл прошел базовую проверку безопасности</span>
-                       </div>
-                   `;
-               } else {
-                   warnings.forEach(warning => {
-                       const icon = warning.severity === 'danger' ? '🚫' : '⚠️';
-                       html += `
-                           <div class="security-item">
-                               <span class="security-icon">${icon}</span>
-                               <span>${warning.message}</span>
-                           </div>
-                       `;
-                   });
-                   
-                   html += `
-                       <div class="security-warning">
-                           <strong>Внимание!</strong> Этот файл содержит подозрительные характеристики. 
-                           Открывайте его с осторожностью.
-                       </div>
-                   `;
-               }
-               
-               html += '</div>';
-               return html;
-           }
-   
-           // Обновленная функция показа содержимого файла
-           async function showFileContent(filePath) {
-               if (!currentZip) return;
-   
-               showLoading(true);
-               
-               try {
-                   const file = currentZip.files[filePath];
-                   const fileName = filePath.split('/').pop();
-                   
-                   // Анализ безопасности перед показом
-                   const fileInfo = {
-                       name: fileName,
-                       size: file._data.uncompressedSize
-                   };
-                   
-                   const securityWarnings = analyzeFileSecurity(fileInfo);
-                   
-                   contentFileName.textContent = filePath;
-                   
-                   // Показываем предупреждения безопасности
-                   const securityHTML = displaySecurityWarnings(securityWarnings, fileName);
-                   
-                   // Добавляем класс для подозрительных файлов
-                   if (securityWarnings.length > 0) {
-                       fileContent.classList.add('suspicious-file');
-                   } else {
-                       fileContent.classList.remove('suspicious-file');
-                   }
-                   
-                   // Проверяем, является ли файл текстовым
-                   const extension = filePath.split('.').pop().toLowerCase();
-                   const textExtensions = ['txt', 'md', 'c', 'h', 'cpp', 'hpp', 'js', 'html', 'css', 'py', 'java', 'json', 'xml', 'csv', 'log', 'cfg', 'conf', 'ini', 'rs', 'asm'];
-                   
-                   if (textExtensions.includes(extension)) {
-                       const content = await file.async('text');
-                       contentText.textContent = content;
-                       contentText.style.display = 'block';
-                       fileContent.querySelector('.binary-warning')?.remove();
-                       
-                       // Дополнительная проверка содержимого текстовых файлов
-                       if (checkSuspiciousContent(content)) {
-                           const suspiciousWarning = document.createElement('div');
-                           suspiciousWarning.className = 'security-warning';
-                           suspiciousWarning.innerHTML = `
-                               <strong>⚠️ Обнаружено подозрительное содержимое!</strong>
-                               <p>Файл содержит шаблоны, похожие на вредоносный код.</p>
-                           `;
-                           contentText.parentNode.insertBefore(suspiciousWarning, contentText);
-                       }
-                   } else {
-                       contentText.style.display = 'none';
-                       if (!fileContent.querySelector('.binary-warning')) {
-                           const warning = document.createElement('div');
-                           warning.className = 'binary-warning';
-                           warning.innerHTML = `
-                               <div style="font-size: 3rem; margin-bottom: 10px;">🔒</div>
-                               <p>Этот файл не может быть отображен как текст</p>
-                               <p style="font-size: 0.8rem; margin-top: 10px;">Формат: ${extension || 'неизвестен'}</p>
-                               ${securityHTML}
-                           `;
-                           fileContent.appendChild(warning);
-                       }
-                   }
-                   
-                   fileContent.style.display = 'block';
-                   fileContent.scrollIntoView({ behavior: 'smooth' });
-                   
-               } catch (error) {
-                   console.error('Ошибка при чтении файла:', error);
-                   contentText.textContent = 'Ошибка при чтении файла';
-               }
-               
-               showLoading(false);
-           }
-   
-           // Функция проверки подозрительного содержимого
-           function checkSuspiciousContent(content) {
-               const suspiciousPatterns = [
-                   /eval\s*\(/i,
-                   /document\.write/gi,
-                   /fromCharCode/gi,
-                   /unescape/gi,
-                   /exec\s*\(/gi,
-                   /system\s*\(/gi,
-                   /cmd\.exe/gi,
-                   /powershell/gi,
-                   /wscript\.shell/gi,
-                   /regsvr32/gi,
-                   /schtasks/gi,
-                   /base64_decode/gi
-               ];
-               
-               return suspiciousPatterns.some(pattern => pattern.test(content));
-           }
-   
-           // Обновляем функцию отображения структуры файлов
-           function markSuspiciousFiles(files) {
-               files.forEach(path => {
-                   if (!path.endsWith('/')) {
-                       const fileName = path.split('/').pop();
-                       const fileInfo = { name: fileName, size: 0 };
-                       const warnings = analyzeFileSecurity(fileInfo);
-                       
-                       if (warnings.length > 0) {
-                           // Помечаем подозрительные файлы в интерфейсе
-                           const fileElement = document.querySelector(`[data-path="${path}"]`);
-                           if (fileElement) {
-                               fileElement.classList.add('suspicious-file');
-                               const warningSpan = document.createElement('span');
-                               warningSpan.className = 'file-warning';
-                               warningSpan.textContent = '⚠️';
-                               warningSpan.title = warnings.map(w => w.message).join(', ');
-                               fileElement.appendChild(warningSpan);
-                           }
-                       }
-                   }
-               });
-           }
-       </script>
-   </body>
-   </html>
 </body>
 </html>
