@@ -536,65 +536,84 @@
                 loadHistory();
             }
 
-            function setupEventListeners() {
-                // Main handlers
-                browseBtn.addEventListener('click', () => {
-                    fileInput.value = '';
-                    fileInput.click();
-                });
+           // Исправленные обработчики событий
+function setupEventListeners() {
+    // Основные обработчики
+    browseBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        fileInput.value = '';
+        fileInput.click();
+    });
 
-                uploadArea.addEventListener('click', (e) => {
-                    if (e.target !== browseBtn) {
-                        fileInput.value = '';
-                        fileInput.click();
-                    }
-                });
+    uploadArea.addEventListener('click', function(e) {
+        if (e.target !== browseBtn && !e.target.classList.contains('file-input')) {
+            e.preventDefault();
+            fileInput.value = '';
+            fileInput.click();
+        }
+    });
 
-                fileInput.addEventListener('change', function() {
-                    if (this.files.length > 0) {
-                        handleFiles(this.files);
-                    }
-                });
+    fileInput.addEventListener('change', function() {
+        if (this.files.length > 0) {
+            handleFiles(this.files);
+        }
+    });
 
-                // Drag & Drop
-                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                    uploadArea.addEventListener(eventName, preventDefaults, false);
-                });
+    // Drag & Drop
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, preventDefaults, false);
+    });
 
-                ['dragenter', 'dragover'].forEach(eventName => {
-                    uploadArea.addEventListener(eventName, highlight, false);
-                });
+    ['dragenter', 'dragover'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, highlight, false);
+    });
 
-                ['dragleave', 'drop'].forEach(eventName => {
-                    uploadArea.addEventListener(eventName, unhighlight, false);
-                });
+    ['dragleave', 'drop'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, unhighlight, false);
+    });
 
-                uploadArea.addEventListener('drop', handleDrop, false);
+    uploadArea.addEventListener('drop', handleDrop, false);
+}
 
-                // Control buttons
-                resetBtn.addEventListener('click', resetForm);
-                copyBtn.addEventListener('click', copyStructure);
-                exportBtn.addEventListener('click', exportToText);
-                closeContentBtn.addEventListener('click', closeFileContent);
+function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+}
 
-                // Search
-                searchInput.addEventListener('input', performSearch);
+function highlight() {
+    uploadArea.classList.add('highlight');
+}
 
-                // View modes
-                viewButtons.forEach(btn => {
-                    btn.addEventListener('click', function() {
-                        viewButtons.forEach(b => b.classList.remove('active'));
-                        this.classList.add('active');
-                        currentView = this.dataset.view;
-                        fileStructure.className = `file-structure ${currentView}`;
-                        renderFileStructure();
-                    });
-                });
+function unhighlight() {
+    uploadArea.classList.remove('highlight');
+}
 
-                // Additional buttons
-                historyBtn.addEventListener('click', showHistory);
-                helpBtn.addEventListener('click', showHelp);
-            }
+function handleDrop(e) {
+    const dt = e.dataTransfer;
+    const files = dt.files;
+    if (files.length > 0) {
+        handleFiles(files);
+    }
+}
+
+function handleFiles(files) {
+    const file = files[0];
+    if (!file) return;
+    
+    // Проверяем, что файл имеет расширение .zip
+    if (!file.name.toLowerCase().endsWith('.zip')) {
+        alert('Пожалуйста, выберите файл с расширением .zip');
+        resetForm();
+        return;
+    }
+
+    showLoading(true);
+    fileName.textContent = file.name;
+    fileDetails.textContent = `Размер: ${formatFileSize(file.size)}`;
+
+    processZipFile(file);
+}
 
             function preventDefaults(e) {
                 e.preventDefault();
